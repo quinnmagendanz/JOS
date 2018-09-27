@@ -548,6 +548,40 @@ tlb_invalidate(pde_t *pgdir, void *va)
 	invlpg(va);
 }
 
+///////////////////////MAGENDANZ/////////////////////////////
+// view_memory_mapping prints out a visual representation of 
+// how the given virtual address (or range of virtual addresses)
+// are mapped to physical addresses.
+void
+view_memory_mapping(pde_t* pgdir, void* va_low, void* va_high) {
+	cprintf("%22sMemory Mapping%22s\n", "", "");
+	cprintf(" %-15s || %-18s || %s\n", 
+		"VA", "Page Dir Entry", "Page Table Entry");
+	cprintf(" %-3s | %-3s | %-3s || %-10s | %-5s || %-10s | %-5s\n",
+		"PDX", "PTX", "Off", "Table PA", "Flags", "Page PA", "Flags");
+	void* va = ROUNDDOWN(va_low, PGSIZE);
+	do {
+		pte_t pte1 = pgdir[PDX(va)];
+		cprintf(" %03x | %03x | %03x || 0x%08x |  %03x  ", 
+			PDX(va), PTX(va), PGOFF(va),
+			PTE_ADDR(pte1), PGOFF(pte1));
+		bool present = pte1 & PTE_P;
+		if (!present) {
+			cprintf("=> Page not present in page directory\n"); 
+		} else {
+			physaddr_t pt2_p = PTE_ADDR(pte1);
+			pde_t* pt2 = KADDR(pt2_p);
+			pte_t pte2 = pt2[PTX(va)];
+			present = pte2 & PTE_P;
+			cprintf("|| 0x%08x |  %03x  %s\n",
+				PTE_ADDR(pte2), PGOFF(pte2),
+				present ? "" : "=> Page not present in page table");
+		}
+		va += PGSIZE;
+	} while (va <= va_high);
+}
+#define view_memory_mapping(pgdir, va) view_memory_mapping(pgdir, va, va)
+////////////////////////////////////////////////////////////
 
 // --------------------------------------------------------------
 // Checking functions.
@@ -809,6 +843,10 @@ check_page(void)
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
+
+	////////////////////MAGENDANZ//////////////////////
+	//view_memory_mapping(kern_pgdir, (void*)PGSIZE);
+	//////////////////////////////////////////////////
 
 	// should be no free memory
 	assert(!page_alloc(0));
