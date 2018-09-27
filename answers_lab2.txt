@@ -23,4 +23,11 @@ Entry	VA		Points to...
 
 
 Challenge: 
+I implemented a debugging function which shows a visual represenation of how the given virtual address (or range of virtual addresses) are mapped to physical addresses. An example can be found below.
 
+
+Console output from call to view_memory_mapping(kern_pgdir, (void*)PGSIZE):
+                      Memory Mapping
+ VA              || Page Dir Entry     || Page Table Entry
+ PDX | PTX | Off || Table PA   | Flags || Page PA    | Flags
+ 000 | 001 | 000 || 0x003ff000 |  007  || 0x003fd000 |  003
