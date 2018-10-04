@@ -165,7 +165,10 @@ mem_init(void)
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
-	// LAB 3: Your code here.
+	////////////////////////MAGENDANZ/////////////////////////
+	int envs_size = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
+        envs = (struct Env*)boot_alloc(envs_size);
+	/////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -188,7 +191,6 @@ mem_init(void)
 	//    - the new image at UPAGES -- kernel R, user R
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
-	// Your code goes here:
 	//////////////////////MAGENDANZ////////////////////////
 	boot_map_region(kern_pgdir, 
 			(uintptr_t)UPAGES,
@@ -203,7 +205,13 @@ mem_init(void)
 	// Permissions:
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
-	// LAB 3: Your code here.
+	//////////////////////MAGENDANZ////////////////////////
+	boot_map_region(kern_pgdir, 
+			(uintptr_t)UENVS,
+			ROUNDUP(NENV*sizeof(struct Env), PGSIZE), 
+			PADDR(envs),
+			PTE_U | PTE_P);
+	//////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -217,10 +225,6 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 	//////////////////////MAGENDANZ/////////////////////////
-	//for (void* va = (void*)(KSTACKTOP-KSTKSIZE); va < (void*)KSTACKTOP; va += PGSIZE) {
-	//	struct PageInfo* page = page_lookup(kern_pgdir, va, 0);
-	// 	page_insert(kern_pgdir, page, va, PTE_W | PTE_P);
-	//}
 	boot_map_region(kern_pgdir,
 			(uintptr_t)(KSTACKTOP-KSTKSIZE),
 			KSTKSIZE,
