@@ -9,4 +9,4 @@ Magendanz
 4) This mechanism is in place to prevent all syscalls from being made directly from user space. 
 
 Challenge:
-
+I eliminated code repition in trapentry.S by using recursive macros to generate the handlers.
