@@ -188,6 +188,7 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	///////////////////////////MAGENDANZ/////////////////////////////
+	p->pp_ref++;
 	e->env_pgdir = (pde_t*)page2kva(p);
 	// Copy the kernel address space of the kernel pgdir to the environment pgdir.
 	memcpy(&(e->env_pgdir[PDX(UTOP)]), &(kern_pgdir[PDX(UTOP)]), PGSIZE - PDX(UTOP));
