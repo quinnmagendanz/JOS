@@ -445,7 +445,7 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	//////////////////MAGENDANZ////////////////////
-	for (int i = 0; i < size; i++) {
+	for (int i = 0; i < size; i += PGSIZE) {
 		pte_t* entry = pgdir_walk(pgdir, (void*)(va+i), 1);
 		assert(entry != NULL);
 		*entry = PTE_NEW(pa+i, perm | PTE_P);
