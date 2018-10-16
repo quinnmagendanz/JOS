@@ -1,0 +1,12 @@
+Magendanz
+
+1) We have an individual handler for each function so that we can specifically identify when we expect the CPU to push error codes onto the stack. In cases we know it will not, we must push a zero on the stack so that a user cannot push something to the stack, trying to play it off as a CPU code.
+
+2) We want user space to trap 13, not 14 so that the handling for 14 can be at kernel priviledge level, and not accidentally give kernel access to a user who calls it.
+
+3) The breakpoint test generates a general protection fault if you do not add T_BRKPT into the  IDT with user-level (0x3) permissions. To get the correct behavior, you must set it up like T_SYSCALL, specifying 0x3 user permissions.
+
+4) This mechanism is in place to prevent all syscalls from being made directly from user space. 
+
+Challenge:
+I eliminated code repition in trapentry.S by using recursive macros to generate the handlers.

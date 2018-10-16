@@ -1,56 +1,73 @@
-/* See COPYRIGHT for copyright information. */
-
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
 #include <inc/trap.h>
-
 #include <kern/picirq.h>
 
+.globl alltraps
+alltraps:
+	# Build trap frame.
+	pushl %ds
+	pushl %es
+	pushal
 
-###################################################################
-# exceptions/interrupts
-###################################################################
+	# Set up data segments.
+	movw $(GD_KD), %ax
+	movw %ax, %ds
+	movw %ax, %es
 
-/* TRAPHANDLER defines a globally-visible function for handling a trap.
- * It pushes a trap number onto the stack, then jumps to _alltraps.
- * Use TRAPHANDLER for traps where the CPU automatically pushes an error code.
- *
- * You shouldn't call a TRAPHANDLER function from C, but you may
- * need to _declare_ one in C (for instance, to get a function pointer
- * during IDT setup).  You can declare the function with
- *   void NAME();
- * where NAME is the argument passed to TRAPHANDLER.
- */
-#define TRAPHANDLER(name, num)						\
-	.globl name;		/* define global symbol for 'name' */	\
-	.type name, @function;	/* symbol type is function */		\
-	.align 2;		/* align function definition */		\
-	name:			/* function starts here */		\
-	pushl $(num);							\
-	jmp _alltraps
+	# Call trap(tf), where tf=%esp
+	pushl %esp
+	call trap
+	addl $4, %esp
 
-/* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
- * It pushes a 0 in place of the error code, so the trap frame has the same
- * format in either case.
- */
-#define TRAPHANDLER_NOEC(name, num)					\
-	.globl name;							\
-	.type name, @function;						\
-	.align 2;							\
-	name:								\
-	pushl $0;							\
-	pushl $(num);							\
-	jmp _alltraps
+# Return falls through to trapret...
+.globl trapret
+	trapret:
+	popal
+	popl %gs
+	popl %fs
+	popl %es
+	popl %ds
+	addl $0x8, %esp  # trapno and errcode
+	iret
+
+# pushes extra $0 when CPU alert will not be used
+.altmacro
+.macro add_cpu_alert_filler count
+.if ((count-8)&&(count-10)&&(count-11)&&(count-12)&&(count-13)&&(count-14)&&(count-17))
+	push $0
+.endif
+.endm
+
+# handlers init macro
+.altmacro
+.macro create_handlers count
+	.if \count
+		create_handlers %(count-1)
+	.endif
+	.globl vector\count
+        .type vector\count, @function
+        .align 2
+        vector\count:
+        add_cpu_alert_filler %(count)
+	pushl $(count)
+        jmp alltraps
+.endm
+
+# vectors init macro
+.altmacro
+.macro create_vector count
+	.if \count
+		create_vector %(count-1)
+	.endif
+	.long vector\count
+.endm
 
 .text
+create_handlers 48
 
-/*
- * Lab 3: Your code here for generating entry points for the different traps.
- */
-
-
-
-/*
- * Lab 3: Your code here for _alltraps
- */
-
+# vector table
+.data
+.globl vectors
+vectors:
+create_vector 48
