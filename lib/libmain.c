@@ -13,15 +13,7 @@ libmain(int argc, char **argv)
 {
 	// set thisenv to point at our Env structure in envs[].
 	///////////////////////MAGENDANZ/////////////////////////
-	uint32_t call = SYS_getenvid;
-	uint32_t envid;
-	asm(	"movl %1, %%eax\n\t"
-		"int $0x30\n\t"
-		"movl %%eax, %0\n\t"
-		: "=r"(envid)
-		: "r"(call)
-		: "eax");
-	thisenv = &(envs[ENVX(envid)]);
+	thisenv = &(envs[ENVX(sys_getenvid())]);
 	///////////////////////////////////////////////////////
 
 	// save the name of the program so that panic() can use it

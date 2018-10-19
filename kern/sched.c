@@ -27,9 +27,21 @@ sched_yield(void)
 	// another CPU (env_status == ENV_RUNNING). If there are
 	// no runnable environments, simply drop through to the code
 	// below to halt the cpu.
+	///////////////////////MAGENDANZ//////////////////////
+	idle = thiscpu->cpu_env;
+	int id = idle == NULL ? 0 : idle->env_id;
+	for (int i = 1; i <= NENV; i++) {
+		if (envs[(id + i) % NENV].env_status == ENV_RUNNABLE) {
+			env_run(&envs[(id + i) % NENV]);
+			return;
+		}
+	}
+	if(curenv !=NULL && curenv->env_status == ENV_RUNNING){
+		env_run(curenv);
+		return;
+	}
 
-	// LAB 4: Your code here.
-
+	/////////////////////////////////////////////////////
 	// sched_halt never returns
 	sched_halt();
 }

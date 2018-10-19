@@ -162,7 +162,7 @@ mem_init(void)
         /////////////////////////MAGENDANZ////////////////////
 	int pages_size = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
         pages = (struct PageInfo*)boot_alloc(pages_size);
-        memset(page2kva(pages), 0, pages_size); 
+        memset(pages, 0, pages_size); 
         /////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////
@@ -170,6 +170,7 @@ mem_init(void)
 	////////////////////////MAGENDANZ/////////////////////////
 	int envs_size = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
         envs = (struct Env*)boot_alloc(envs_size);
+	memset(envs, 0, envs_size);
 	/////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////
@@ -299,8 +300,17 @@ mem_init_mp(void)
 	//             Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	//
-	// LAB 4: Your code here:
-
+	//////////////////////MAGENDANZ/////////////////////////
+	for (int i = 0; i < NCPU; i++) {
+		uintptr_t va = (uintptr_t)(KSTACKTOP - KSTKSIZE - i * (KSTKSIZE + KSTKGAP));
+		assert(va % PGSIZE == 0);
+		boot_map_region(kern_pgdir,
+				va,
+				KSTKSIZE,
+				PADDR(percpu_kstacks[i]),
+				PTE_W | PTE_P);
+	}
+	///////////////////////////////////////////////////////
 }
 
 // --------------------------------------------------------------
@@ -318,10 +328,6 @@ mem_init_mp(void)
 void
 page_init(void)
 {
-	// LAB 4:
-	// Change your code to mark the physical page at MPENTRY_PADDR
-	// as in use
-
 	// The example code here marks all physical pages as free.
 	// However this is not truly the case.  What memory is free?
 	//  1) Mark physical page 0 as in use.
@@ -346,7 +352,8 @@ page_init(void)
                 // Page reserved/in use.
 		bool bios = (i == 0);
 		bool io_kern = (IOPHYSMEM <= page2pa(&pages[i]) && page2kva(&pages[i]) < first_free_page);
-                if (bios || io_kern) {
+		bool mp_entry = (MPENTRY_PADDR == page2pa(&pages[i]));
+                if (bios || io_kern || mp_entry) {
 		    pages[i].pp_ref = 1; 
                 } else {
 		    pages[i].pp_ref = 0;
@@ -545,16 +552,14 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	//////////////////MAGENDANZ////////////////////
-	pte_t* entry = pgdir_walk(pgdir, va, 0);
-	if (entry == NULL) {
+	pte_t* page = pgdir_walk(pgdir, va, 0);
+	if(pte_store){
+		*pte_store = page;
+	}
+	if(!page || !(*page & PTE_P)){
 		return NULL;
 	}
-	physaddr_t pa = (physaddr_t)(PTE_ADDR(*entry) | PGOFF(va));
-	struct PageInfo* lookup = pa2page(pa);
-	if (pte_store != 0) {
-		*entry = **pte_store;
-	}
-	return lookup;
+	return pa2page(PTE_ADDR(*page));
 	//////////////////////////////////////////////
 }
 
@@ -577,12 +582,15 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	///////////////////MAGENDANZ////////////////////
-	pte_t cleared = 0;
-	pte_t* cleared_p = &cleared;
-	struct PageInfo* page = page_lookup(pgdir, va, &cleared_p);
-	if (page != NULL) {
+	pte_t* entry = NULL;
+	struct PageInfo* page = page_lookup(pgdir, va, &entry);
+	if(page){
+		*entry = (pte_t) 0;
 		tlb_invalidate(pgdir, va);
-		page_decref(page);
+		page->pp_ref--;
+		if(page->pp_ref == 0){
+			page_free(page);
+		}
 	}
 	///////////////////////////////////////////////
 }
@@ -630,8 +638,21 @@ mmio_map_region(physaddr_t pa, size_t size)
 	//
 	// Hint: The staff solution uses boot_map_region.
 	//
-	// Your code here:
-	panic("mmio_map_region not implemented");
+	///////////////////MAGENDANZ//////////////////////
+	size_t pg_size = ROUNDUP(size, PGSIZE);
+	if (base + pg_size > MMIOLIM) {
+		panic("Insufficient mmio memory.");
+	}
+	boot_map_region(kern_pgdir, 
+			base, 
+			pg_size,
+			pa, 
+			PTE_PCD|PTE_PWT|PTE_W);
+	uintptr_t mapped = base;
+	assert(check_va2pa(kern_pgdir, mapped) == pa);
+	base += pg_size;
+	return (void*)mapped;
+	////////////////////////////////////////////////
 }
 
 static uintptr_t user_mem_check_addr;
@@ -1116,6 +1137,7 @@ check_page(void)
 	// check that they don't overlap
 	assert(mm1 + 8192 <= mm2);
 	// check page mappings
+	cprintf("va: %x, pa: %x\n", mm1, check_va2pa(kern_pgdir, mm1));
 	assert(check_va2pa(kern_pgdir, mm1) == 0);
 	assert(check_va2pa(kern_pgdir, mm1+PGSIZE) == PGSIZE);
 	assert(check_va2pa(kern_pgdir, mm2) == 0);
