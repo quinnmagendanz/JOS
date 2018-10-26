@@ -1137,7 +1137,6 @@ check_page(void)
 	// check that they don't overlap
 	assert(mm1 + 8192 <= mm2);
 	// check page mappings
-	cprintf("va: %x, pa: %x\n", mm1, check_va2pa(kern_pgdir, mm1));
 	assert(check_va2pa(kern_pgdir, mm1) == 0);
 	assert(check_va2pa(kern_pgdir, mm1+PGSIZE) == PGSIZE);
 	assert(check_va2pa(kern_pgdir, mm2) == 0);

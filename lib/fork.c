@@ -24,7 +24,12 @@ pgfault(struct UTrapframe *utf)
 	//   Use the read-only page table mappings at uvpt
 	//   (see <inc/memlayout.h>).
 
-	// LAB 4: Your code here.
+	///////////////////////MAGENDANZ///////////////////////////
+	void *va = ROUNDDOWN(addr, PGSIZE);
+	uint32_t perm = PTE_U | PTE_P | PTE_COW;
+	if (err == FEC_WR || (uvpt[PGNUM(va)] & perm) != perm)
+		panic("pgfault not from write on copy-on-write page.");
+	//////////////////////////////////////////////////////////
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
@@ -32,9 +37,21 @@ pgfault(struct UTrapframe *utf)
 	// Hint:
 	//   You should make three system calls.
 
-	// LAB 4: Your code here.
-
-	panic("pgfault not implemented");
+	/////////////////////////MAGENDANZ///////////////////////////
+	// Allocate a new page, map it at a temporary location (PFTEMP)
+	if ((r = sys_page_alloc(0, (void *) PFTEMP, PTE_P|PTE_U|PTE_W)) < 0) {
+		panic("sys_page_alloc: %e", r);
+	}
+	// copy the data from the old page to the new page
+	memcpy((void *) PFTEMP, va, PGSIZE);
+	//then move the new page to the old page's address.
+	if ((r = sys_page_map(0, (void *) PFTEMP, 0, va, PTE_P|PTE_U|PTE_W)) < 0) {
+		panic("sys_page_map: %e", r);
+	}
+	if ((r = sys_page_unmap(0, (void *) PFTEMP)) < 0) {
+		panic("sys_page_unmap: %e", r);
+	}
+	////////////////////////////////////////////////////////////
 }
 
 //
@@ -51,10 +68,25 @@ pgfault(struct UTrapframe *utf)
 static int
 duppage(envid_t envid, unsigned pn)
 {
-	int r;
 
-	// LAB 4: Your code here.
-	panic("duppage not implemented");
+	////////////////////MAGENDANZ///////////////////////
+	void *addr = (void *) (pn * PGSIZE);
+	uint32_t perm = PTE_U | PTE_P;
+	int r;
+    
+	// If the page is writable or copy-on-write, the new mapping must be created copy-on-write
+	if (uvpt[pn] & PTE_W) {
+		perm |= PTE_COW;
+	}
+	
+	if ((r = sys_page_map(0, addr, envid, addr, perm)) < 0) {
+		panic("sys_page_map: %e", r);
+	}
+	// our mapping must be marked copy-on-write as well
+	if ((r = sys_page_map(0, addr, 0, addr, perm)) < 0) {
+		panic("sys_page_map: %e", r);
+	}
+	/////////////////////////////////////////////////////
 	return 0;
 }
 
@@ -77,8 +109,40 @@ duppage(envid_t envid, unsigned pn)
 envid_t
 fork(void)
 {
-	// LAB 4: Your code here.
-	panic("fork not implemented");
+	int r;
+
+	/////////////////MAGENDANZ/////////////////////
+	set_pgfault_handler(&pgfault);
+
+	envid_t new_envid = sys_exofork();
+	if (new_envid < 0) 
+		// failure 
+		return new_envid;
+	if (new_envid == 0) {
+		// I am child.
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+	
+	// I am parent.
+	for (void* addr = 0; addr <  (void*)(UXSTACKTOP - PGSIZE); addr += PGSIZE) {	
+		if ((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P)) {
+			duppage(new_envid, PGNUM(addr));
+		}
+	}
+
+	if ((r = sys_page_alloc(new_envid, (void *)(UXSTACKTOP - PGSIZE), PTE_U|PTE_W|PTE_P)) < 0) {
+		panic("sys_page_alloc: %e", r);
+	}	
+	if ((r = sys_env_set_pgfault_upcall(new_envid, thisenv->env_pgfault_upcall)) < 0) {
+		panic("sys_env_set_pgfault_upcall: %e", r);
+	}	
+	if ((r = sys_env_set_status(new_envid, ENV_RUNNABLE)) < 0) {
+		panic("sys_env_set_status: %e", r);
+	}
+
+	return new_envid;
+	/////////////////////////////////////////////////
 }
 
 // Challenge!

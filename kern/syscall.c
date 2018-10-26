@@ -1,4 +1,4 @@
-/* See COPYRIGHT for copyright information. */
+
 
 #include <inc/x86.h>
 #include <inc/error.h>
@@ -127,7 +127,7 @@ sys_env_set_status(envid_t envid, int status)
 	//////////////////////////////////////////////////
 }
 
-// Set the page fault upcall for 'envid' by modifying the corresponding struct
+// Set the page fault bpcall for 'envid' by modifying the corresponding struct
 // Env's 'env_pgfault_upcall' field.  When 'envid' causes a page fault, the
 // kernel will push a fault record onto the exception stack, then branch to
 // 'func'.
@@ -384,6 +384,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_page_map((envid_t)a1, (void*)a2, (envid_t)a3, (void*)a4, (int)a5);
 	case SYS_page_unmap:
 		return sys_page_unmap((envid_t)a1, (void*)a2);
+	case SYS_env_set_pgfault_upcall:
+		return sys_env_set_pgfault_upcall((envid_t)a1, (void*)a2);
 	default:
 		return -E_INVAL;
 	}

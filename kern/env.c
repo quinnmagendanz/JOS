@@ -194,7 +194,7 @@ env_setup_vm(struct Env *e)
 	p->pp_ref++;
 	e->env_pgdir = (pde_t*)page2kva(p);
 	// Copy the kernel address space of the kernel pgdir to the environment pgdir.
-	memcpy(&(e->env_pgdir[PDX(UTOP)]), &(kern_pgdir[PDX(UTOP)]), PGSIZE - PDX(UTOP));
+	memcpy(&(e->env_pgdir[PDX(UTOP)]), &(kern_pgdir[PDX(UTOP)]), (NPDENTRIES - PDX(UTOP)));
 	// For all VAs above UTOP, increment their pp_ref.
 	for (void* i = (void*)UTOP; i < (void*)(npages * PGSIZE); i += PGSIZE) {
 		struct PageInfo* page = page_lookup(e->env_pgdir, i, 0);

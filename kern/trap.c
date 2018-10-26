@@ -339,12 +339,43 @@ page_fault_handler(struct Trapframe *tf)
 	//   To change what the user environment runs, modify 'curenv->env_tf'
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
-	// LAB 4: Your code here.
+	/////////////////////MAGENDANZ//////////////////////////
+	// Check that upcall exists.	
+	if (!curenv->env_pgfault_upcall) {
+		// Destroy the environment that caused the fault.
+		cprintf("[%08x] user fault va %08x ip %08x\n",
+			curenv->env_id, fault_va, tf->tf_eip);
+		print_trapframe(tf);
+		env_destroy(curenv);
+	}
 
-	// Destroy the environment that caused the fault.
-	cprintf("[%08x] user fault va %08x ip %08x\n",
-		curenv->env_id, fault_va, tf->tf_eip);
-	print_trapframe(tf);
-	env_destroy(curenv);
+	// Select location to write UTrapframe.
+	struct UTrapframe* utrap;
+	bool above = tf->tf_esp >= UXSTACKTOP;
+	bool below = tf->tf_esp < (UXSTACKTOP - PGSIZE);
+	//cprintf("UXSTACKTOP: %x, base: %x, tf_esp: %x, %d, %d\n", UXSTACKTOP, UXSTACKTOP - PGSIZE, tf->tf_esp, above, below);
+	if (!above && !below) {
+		utrap = (struct UTrapframe*)(tf->tf_esp - sizeof(struct UTrapframe) - sizeof(uint32_t));
+	} else {
+		utrap = (struct UTrapframe*)(UXSTACKTOP - sizeof(struct UTrapframe));
+	}
+
+	// Ensure access to user exception stack and does not overflow.
+	user_mem_assert(curenv, utrap, ((void*)UXSTACKTOP - (void*)utrap), PTE_P|PTE_U|PTE_W);
+
+	// Add UTrapframe values to user exception stack. 
+	utrap->utf_esp = tf->tf_esp;
+	utrap->utf_eip = tf->tf_eip;
+	utrap->utf_eflags = tf->tf_eflags;
+	utrap->utf_regs = tf->tf_regs;
+	utrap->utf_err = tf->tf_err;
+	utrap->utf_fault_va = fault_va;
+
+	// Move environment to new stack frame.
+	curenv->env_tf.tf_esp = (uintptr_t)utrap;
+	curenv->env_tf.tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+	env_run(curenv);
+
+	///////////////////////////////////////////////////////
 }
 
