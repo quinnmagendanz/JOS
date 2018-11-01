@@ -10,6 +10,9 @@ alltraps:
 	pushl %es
 	pushal
 
+	# Disable interrupts
+	cli
+
 	# Set up data segments.
 	movw $(GD_KD), %ax
 	movw %ax, %ds

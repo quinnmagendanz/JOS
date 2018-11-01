@@ -265,7 +265,9 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	// You will set e->env_tf.tf_eip later.
 
 	// Enable interrupts while in user mode.
-	// LAB 4: Your code here.
+	/////////////////////MAGENDANZ/////////////////////////
+	e->env_tf.tf_eflags |= FL_IF;
+	//////////////////////////////////////////////////////
 
 	// Clear the page fault handler until user installs one.
 	e->env_pgfault_upcall = 0;
@@ -382,7 +384,6 @@ load_icode(struct Env *e, uint8_t *binary)
 		}
 	}
 	// call the entry point from the ELF header
-	// TODO(magendanz) Assign ELF entry point to correct part of env. e->env_tf->tf_eip?
 	e->env_tf.tf_eip = elf_hdr->e_entry;
 
 	// Now map one page for the program's initial stack
@@ -544,8 +545,11 @@ env_run(struct Env *e)
 			case ENV_RUNNING:
 				curenv->env_status = ENV_RUNNABLE;
 				break;
-			case ENV_NOT_RUNNABLE:
 			case ENV_DYING:
+				env_free(curenv);
+				break;
+			case ENV_NOT_RUNNABLE:
+				break;
 			case ENV_RUNNABLE:
 			case ENV_FREE:
 			default:

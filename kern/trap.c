@@ -214,25 +214,27 @@ trap_dispatch(struct Trapframe *tf)
 				tf->tf_regs.reg_edi, 
 				tf->tf_regs.reg_esi);
 			break;
-		default:
+		case (IRQ_OFFSET + IRQ_TIMER):
+			lapic_eoi();
+			sched_yield();
+			break;
+		case (IRQ_OFFSET + IRQ_SPURIOUS):
 			// Handle spurious interrupts
 			// The hardware sometimes raises these because of noise on the
 			// IRQ line or other reasons. We don't care.
-			if (tf->tf_trapno == IRQ_OFFSET + IRQ_SPURIOUS) {
-				cprintf("Spurious interrupt on irq 7\n");
-				print_trapframe(tf);
-				return;
-			}
-
+			cprintf("Spurious interrupt on irq 7\n");
+			print_trapframe(tf);
+			break;
+		default:
 			// Unexpected trap: The user process or the kernel has a bug.
 			print_trapframe(tf);
 			if (tf->tf_cs == GD_KT)
 				panic("unhandled trap in kernel");
 			else {
 				env_destroy(curenv);
-				return;
 			}
 	}
+	//////////////////////////////////////////////////////
 }
 
 void
@@ -304,8 +306,11 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-
-	// LAB 3: Your code here.
+	///////////////////MAGENDANZ//////////////////////////
+	if ((tf->tf_cs & 3) != 3) {
+		panic("Kernel page fault.");
+	}
+	////////////////////////////////////////////////////1/
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
