@@ -340,8 +340,6 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 
 	if (!dstenv->env_ipc_recving) {
 		// Destination env not receiving.
-		//void* dstva = dstenv->env_ipc_dstva;
-		//cprintf("Failed sending %d from %d:%x to %d:%x\n", value, curenv->env_id, srcva, envid, dstva);
 		return -E_IPC_NOT_RECV;
 	}
 

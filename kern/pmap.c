@@ -387,10 +387,6 @@ page_alloc(int alloc_flags)
         page_free_list = page->pp_link;
         page->pp_link = NULL;
         if (alloc_flags & ALLOC_ZERO) {
-		volatile void* va = page2kva(page);
-		if ((int)va == 0xf7fff000) {
-			cprintf("Clear page %x\n", va);
-		}
 		memset(page2kva(page), 0, PGSIZE);
 	}
         return page;
