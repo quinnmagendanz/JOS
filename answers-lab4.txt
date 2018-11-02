@@ -10,4 +10,4 @@ Quinn Magendanz
 
 
 Challenge:
-
+I implemented a priority scheduler. I added a bool env_priority field to struct Env. If it is set to true, that environment will be scheduled 2x as often as the non-prioritized envs.

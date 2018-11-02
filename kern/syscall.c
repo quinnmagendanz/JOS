@@ -331,25 +331,53 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	//////////////////////MAGENDANZ////////////////////////
-	if (!envs[envid].env_ipc_recving) {
+	struct Env *dstenv;
+	int result;
+
+	if ((result = envid2env(envid, &dstenv, 0)) < 0) {
+		return result;
+	}	
+
+	if (!dstenv->env_ipc_recving) {
 		// Destination env not receiving.
-		void* dstva = envs[envid].env_ipc_dstva;
+		//void* dstva = dstenv->env_ipc_dstva;
 		//cprintf("Failed sending %d from %d:%x to %d:%x\n", value, curenv->env_id, srcva, envid, dstva);
 		return -E_IPC_NOT_RECV;
-	}	
-	void* dstva = envs[envid].env_ipc_dstva;
-	cprintf("Sending %d from %d:%x to %d:%x\n", curenv->env_id, srcva, envid, dstva);
-	if (srcva < (void*)UTOP && dstva < (void*)UTOP) {
-		int result = sys_page_map(curenv->env_id, srcva, envid, dstva, perm);
-		if (result < 0) {
-			return result;
-		}	
-		envs[envid].env_ipc_perm = perm;
 	}
-	envs[envid].env_ipc_value = value;
-	envs[envid].env_ipc_from = curenv->env_id;
-	envs[envid].env_ipc_recving = false;
-	envs[envid].env_status = ENV_RUNNABLE;
+
+	void* dstva = dstenv->env_ipc_dstva;
+	if (srcva < (void*)UTOP && dstva < (void*)UTOP) {
+		// Both source and destination environments want to ipc page.
+		struct PageInfo *page;
+		pte_t *pte;
+		if (srcva >= (void *) UTOP || PGOFF(srcva) != 0) {
+			return -E_INVAL;
+		}
+		if (dstva >= (void *) UTOP || PGOFF(dstva) != 0) {
+			return -E_INVAL;
+		}
+		if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P) || (perm & ~PTE_SYSCALL) != 0) {
+			return -E_INVAL;
+		}
+
+		if ((page = page_lookup(curenv->env_pgdir, srcva, &pte)) == NULL) {
+			return -E_INVAL;
+		}
+		if ((perm & PTE_W) && !(*pte & PTE_W)) {
+			return -E_INVAL;
+		}
+
+		if ((result = page_insert(dstenv->env_pgdir, page, dstva, perm)) < 0) {
+			return result;
+		}
+
+		dstenv->env_ipc_perm = perm;
+	}
+	dstenv->env_ipc_value = value;
+	dstenv->env_ipc_from = curenv->env_id;
+	dstenv->env_ipc_recving = false;
+	dstenv->env_status = ENV_RUNNABLE;
+	dstenv->env_tf.tf_regs.reg_eax = 0;
 	return 0;
 	//////////////////////////////////////////////////////
 }
@@ -369,7 +397,6 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	//////////////////////MAGENDANZ////////////////////////
-	cprintf("Start to recieve at %d:%x\n", curenv->env_id, dstva);
 	if (dstva < (void*)UTOP && PGOFF(dstva)) {
 		// Desitination not page alligned.
 		return -E_INVAL;

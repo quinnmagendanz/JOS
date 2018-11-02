@@ -75,8 +75,8 @@ trap_init(void)
 	extern unsigned int vectors[];
 	for (int i = 0; i < 256; i++)
 		SETGATE(idt[i], 0, 1<<3, vectors[i], 0);
-	SETGATE(idt[T_BRKPT], 1, 1<<3, vectors[T_BRKPT], 0x3);
-	SETGATE(idt[T_SYSCALL], 1, 1<<3, vectors[T_SYSCALL], 0x3);
+	SETGATE(idt[T_BRKPT], 0, 1<<3, vectors[T_BRKPT], 0x3);
+	SETGATE(idt[T_SYSCALL], 0, 1<<3, vectors[T_SYSCALL], 0x3);
 	////////////////////////////////////////////////
 
 	// Per-CPU setup 
@@ -308,6 +308,7 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 	///////////////////MAGENDANZ//////////////////////////
 	if ((tf->tf_cs & 3) != 3) {
+		print_trapframe(tf);
 		panic("Kernel page fault.");
 	}
 	////////////////////////////////////////////////////1/

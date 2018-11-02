@@ -194,7 +194,11 @@ env_setup_vm(struct Env *e)
 	p->pp_ref++;
 	e->env_pgdir = (pde_t*)page2kva(p);
 	// Copy the kernel address space of the kernel pgdir to the environment pgdir.
-	memcpy(&(e->env_pgdir[PDX(UTOP)]), &(kern_pgdir[PDX(UTOP)]), (NPDENTRIES - PDX(UTOP)));
+	//memcpy(&(e->env_pgdir[PDX(UTOP)]), &(kern_pgdir[PDX(UTOP)]), (NPDENTRIES - PDX(UTOP)));
+	 for(int i = PDX(UTOP); i < NPDENTRIES; i++){
+                e->env_pgdir[i] =  kern_pgdir[i];
+
+        }
 	// For all VAs above UTOP, increment their pp_ref.
 	for (void* i = (void*)UTOP; i < (void*)(npages * PGSIZE); i += PGSIZE) {
 		struct PageInfo* page = page_lookup(e->env_pgdir, i, 0);
@@ -303,9 +307,12 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//////////////////////MAGENDANZ/////////////////////////
 	for (void* new_pg_va = ROUNDDOWN(va, PGSIZE); new_pg_va < ROUNDUP(va + len, PGSIZE); new_pg_va += PGSIZE) {
 		struct PageInfo* page = page_alloc(0);
+		if (page == NULL) {
+			panic("Cannot alloc page");
+		}
 		int err = page_insert(e->env_pgdir, page, new_pg_va, PTE_U | PTE_W | PTE_P);
-		if (err != 0) {
-			panic("Cannot allocate user page.");
+		if (err < 0) {
+			panic("Cannot allocate user page");
 		}
 	}
 	///////////////////////////////////////////////////////
