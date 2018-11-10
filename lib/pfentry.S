@@ -63,20 +63,29 @@ _pgfault_upcall:
 	// registers are available for intermediate calculations.  You
 	// may find that you have to rearrange your code in non-obvious
 	// ways as registers become unavailable as scratch space.
-	//
-	// LAB 4: Your code here.
+	///////////////////////MAGENDANZ///////////////////////
+	// Copy trap-time eip to trap-time stack pointer.
+	movl %esp, %eax
+        movl 40(%eax), %ebx // get eip
+        movl 48(%eax), %esp // swap to trap-time stack
+        push %ebx
+        movl %esp, 48(%eax) // update new trap-time esp
+        movl %eax, %esp // swap back to exception stack
 
-	// Restore the trap-time registers.  After you do this, you
-	// can no longer modify any general-purpose registers.
-	// LAB 4: Your code here.
+        // Restore the trap-time registers.  After you do this, you
+        // can no longer modify any general-purpose registers.
+        addl $8, %esp // esp points at regs
+        popal
 
-	// Restore eflags from the stack.  After you do this, you can
-	// no longer use arithmetic operations or anything else that
-	// modifies eflags.
-	// LAB 4: Your code here.
+        // Restore eflags from the stack.  After you do this, you can
+        // no longer use arithmetic operations or anything else that
+        // modifies eflags.
+        addl $4, %esp // esp points to eflags
+        popfl // esp points to trap-time esp.
 
-	// Switch back to the adjusted trap-time stack.
-	// LAB 4: Your code here.
+        // Switch back to the adjusted trap-time stack.
+        popl %esp
 
-	// Return to re-execute the instruction that faulted.
-	// LAB 4: Your code here.
+        // Return to re-execute the instruction that faulted.
+        ret
+	///////////////////////////////////////////////////////

@@ -22,9 +22,18 @@
 int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
-	// LAB 4: Your code here.
-	panic("ipc_recv not implemented");
-	return 0;
+	//////////////////////MAGENDANZ/////////////////////////
+	void* page_in = pg == NULL ? (void*)UTOP : pg;
+	int r = sys_ipc_recv(page_in);
+	bool err = (r < 0);
+	if (from_env_store != NULL) {
+		*from_env_store = err ? 0 : thisenv->env_ipc_from;
+	}
+	if (perm_store != NULL) {
+		*perm_store = err ? 0 : thisenv->env_ipc_perm;
+	}
+	return err ? r : thisenv->env_ipc_value;
+	///////////////////////////////////////////////////////
 }
 
 // Send 'val' (and 'pg' with 'perm', if 'pg' is nonnull) to 'toenv'.
@@ -38,8 +47,17 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
-	// LAB 4: Your code here.
-	panic("ipc_send not implemented");
+	//////////////////////MAGENDANZ///////////////////////
+	void* page_in = pg == NULL ? (void*)UTOP : pg;
+	int r;
+	do {
+		r = sys_ipc_try_send(to_env, val, page_in, perm);
+		if (r < 0 && r != -E_IPC_NOT_RECV) {
+			panic("sys_ipc_try_send: %e", r);
+		}
+		sys_yield();
+	} while (r < 0);
+	/////////////////////////////////////////////////////
 }
 
 // Find the first environment of the given type.  We'll use this to

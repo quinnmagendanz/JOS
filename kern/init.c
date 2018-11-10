@@ -42,7 +42,7 @@ i386_init(void)
 	pic_init();
 
 	// Acquire the big kernel lock before waking up APs
-	// Your code here:
+	lock_kernel(); /////MAGENANZ/////
 
 	// Starting non-boot CPUs
 	boot_aps();
@@ -56,6 +56,7 @@ i386_init(void)
 #else
 	// Touch all you want.
 	ENV_CREATE(user_icode, ENV_TYPE_USER);
+
 #endif // TEST*
 
 	// Should not be necessary - drains keyboard because interrupt has given up.
@@ -114,10 +115,12 @@ mp_main(void)
 	// to start running processes on this CPU.  But make sure that
 	// only one CPU can enter the scheduler at a time!
 	//
-	// Your code here:
-
+	/////////////////////////MAGENDANZ/////////////////////////
+	lock_kernel();
+	sched_yield();
 	// Remove this after you finish Exercise 6
-	for (;;);
+	//for (;;);
+	//////////////////////////////////////////////////////////
 }
 
 /*
