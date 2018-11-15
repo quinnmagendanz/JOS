@@ -60,10 +60,16 @@ alloc_block(void)
 	// The bitmap consists of one or more blocks.  A single bitmap block
 	// contains the in-use bits for BLKBITSIZE blocks.  There are
 	// super->s_nblocks blocks in the disk altogether.
-
-	// LAB 5: Your code here.
-	panic("alloc_block not implemented");
+	////////////////////MAGENDANZ////////////////////////
+	for (int blockno = 1; blockno < super->s_nblocks; blockno++) {
+		if (bitmap[blockno/32] & 1<<(blockno%32)) {
+			bitmap[blockno/32] ^= 1<<(blockno%32);
+			flush_block(bitmap);
+			return blockno;
+		}
+	}
 	return -E_NO_DISK;
+	////////////////////////////////////////////////////
 }
 
 // Validate the file system bitmap.
@@ -134,8 +140,26 @@ fs_init(void)
 static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
-       // LAB 5: Your code here.
-       panic("file_block_walk not implemented");
+	////////////////////////MAGENDANZ//////////////////////////
+	if (filebno < NDIRECT) {
+		*ppdiskbno = &(f->f_direct[filebno]);
+	} else if (filebno < (NDIRECT + NINDIRECT)) {
+		if (f->f_indirect == 0) {
+			if (alloc) {
+				if ((f->f_indirect = alloc_block()) < 0) {
+					return -E_NO_DISK;
+				}
+			} else {
+				return -E_NOT_FOUND;
+			}
+		}
+		uint32_t* indir_blk = diskaddr(f->f_indirect);
+		*ppdiskbno = &(indir_blk[filebno - NDIRECT]);
+	} else {
+		return -E_INVAL;
+	}
+	return 0;
+	//////////////////////////////////////////////////////////
 }
 
 // Set *blk to the address in memory where the filebno'th
@@ -149,8 +173,20 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
-       // LAB 5: Your code here.
-       panic("file_get_block not implemented");
+	///////////////////////MAGENDANZ/////////////////////////
+	uint32_t* ppdiskbno;
+	int r;
+	if ((r = file_block_walk(f, filebno, &ppdiskbno, 1)) < 0) {
+		return r;
+	}
+	if (*ppdiskbno == 0) {
+		if ((*ppdiskbno = alloc_block()) < 0) {
+			return *ppdiskbno;
+		}
+	}
+	*blk = diskaddr(*ppdiskbno);
+	return 0;
+	////////////////////////////////////////////////////////
 }
 
 // Try to find a file named "name" in dir.  If so, set *file to it.

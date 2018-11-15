@@ -27,8 +27,8 @@ pgfault(struct UTrapframe *utf)
 	///////////////////////MAGENDANZ///////////////////////////
 	void *va = ROUNDDOWN(addr, PGSIZE);
 	uint32_t perm = PTE_U | PTE_P | PTE_COW;
-	if (err == FEC_WR || (uvpt[PGNUM(va)] & perm) != perm)
-		panic("pgfault not from write on copy-on-write page.");
+	if (!(err & FEC_WR) || (uvpt[PGNUM(va)] & perm) != perm)
+		panic("pgfault not from write on copy-on-write page: err: %e, perms: %x", err, uvpt[PGNUM(va)]);
 	//////////////////////////////////////////////////////////
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
@@ -73,9 +73,17 @@ duppage(envid_t envid, unsigned pn)
 	void *addr = (void *) (pn * PGSIZE);
 	uint32_t perm = PTE_U | PTE_P;
 	int r;
+
+	// If the page is sharable, copy the mapping directly.
+	if (uvpt[pn] & PTE_SHARE) {
+		if ((r = sys_page_map(0, addr, envid, addr, uvpt[pn] & PTE_SYSCALL)) < 0) {
+			panic("sys_page_map: %e", r);
+		}
+		return 0;
+	}
     
 	// If the page is writable or copy-on-write, the new mapping must be created copy-on-write
-	if (uvpt[pn] & PTE_W) {
+	if (uvpt[pn] & (PTE_W | PTE_COW)) {
 		perm |= PTE_COW;
 	}
 	

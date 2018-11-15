@@ -218,6 +218,12 @@ trap_dispatch(struct Trapframe *tf)
 			lapic_eoi();
 			sched_yield();
 			break;
+		case (IRQ_OFFSET + IRQ_KBD):
+			kbd_intr();
+			break;
+		case (IRQ_OFFSET + IRQ_SERIAL):
+			serial_intr();
+			break;
 		case (IRQ_OFFSET + IRQ_SPURIOUS):
 			// Handle spurious interrupts
 			// The hardware sometimes raises these because of noise on the

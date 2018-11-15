@@ -140,8 +140,42 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// careful: fsipcbuf.write.req_buf is only so large, but
 	// remember that write is always allowed to write *fewer*
 	// bytes than requested.
-	// LAB 5: Your code here
-	panic("devfile_write not implemented");
+	//////////////////////MAGENDANZ////////////////////////
+	int r;
+
+	/*fsipcbuf.write.req_fileid = fd->fd_file.id;
+	const int bytes_writing = n > PGSIZE - (sizeof(int) + sizeof(size_t)) ? PGSIZE - (sizeof(int) + sizeof(size_t)) : n;
+	fsipcbuf.write.req_n = bytes_writing;
+	memmove(fsipcbuf.write.req_buf, buf, bytes_writing);
+	if ((r = fsipc(FSREQ_WRITE, NULL)) < 0)
+		return r;
+	assert(r <= PGSIZE);
+	assert(r <= n);
+	return r;*/
+
+	const size_t req_size = sizeof(fsipcbuf.write.req_buf);
+	fsipcbuf.write.req_fileid = fd->fd_file.id;
+	size_t bytes_remaining = n;
+	while (bytes_remaining > req_size) {
+		fsipcbuf.write.req_n = req_size;
+		const void* buf_index = buf + (n - bytes_remaining);
+		memmove(fsipcbuf.write.req_buf, buf_index, req_size);
+		if ((r = fsipc(FSREQ_WRITE, NULL)) < 0)
+			return r;
+		assert(r <= req_size);
+		bytes_remaining -= r;
+	}
+	if (bytes_remaining > 0) {
+		fsipcbuf.write.req_n = bytes_remaining;
+		const void* buf_index = buf + (n - bytes_remaining);
+		memmove(fsipcbuf.write.req_buf, buf_index, bytes_remaining);
+		if ((r = fsipc(FSREQ_WRITE, NULL)) < 0)
+			return r;
+		assert(r <= bytes_remaining);
+		bytes_remaining -= r;
+	}
+	return n - bytes_remaining;
+	///////////////////////////////////////////////////////
 }
 
 static int
