@@ -22,9 +22,11 @@ void
 runcmd(char* s)
 {
 	char *argv[MAXARGS], *t, argv0buf[BUFSIZ];
-	int argc, c, i, r, p[2], fd, pipe_child;
+	int argc, c, i, r, p[2], fd, pipe_child, back_child;
 
+	bool multiple = false; ////MAGENDANZ////
 	pipe_child = 0;
+	back_child = 0; ////MAGENDANZ////
 	gettoken(s, 0);
 
 again:
@@ -54,8 +56,16 @@ again:
 			// If not, dup 'fd' onto file descriptor 0,
 			// then close the original 'fd'.
 
-			// LAB 5: Your code here.
-			panic("< redirection not implemented");
+			/////////////////MAGENDANZ//////////////////
+			if ((fd = open(t, O_RDONLY)) < 0) {
+				cprintf("open %s for read: %e", t, fd);
+				exit();
+			}
+			if (fd != 1) {
+				dup(fd, 0);
+				close(fd);
+			}
+			///////////////////////////////////////////
 			break;
 
 		case '>':	// Output redirection
@@ -103,7 +113,24 @@ again:
 			}
 			panic("| not implemented");
 			break;
-
+		/////////////////MAGENDANZ///////////////////
+		case '&':
+			if ((r = fork()) < 0) {
+				cprintf("fork: %e", r);
+				exit();
+			}
+			if (r == 0) {
+				exit();
+			} else {
+				back_child = r;
+				goto runit;
+			}
+			break;
+		case ';':
+			multiple = true;
+			goto runit;
+			break;
+		////////////////////////////////////////////
 		case 0:		// String is complete
 			// Run the current command!
 			goto runit;
@@ -146,6 +173,21 @@ runit:
 	if ((r = spawn(argv[0], (const char**) argv)) < 0)
 		cprintf("spawn %s: %e\n", argv[0], r);
 
+	//////////////////MAGENDANZ////////////////////
+	if (multiple) {
+		if (r >= 0) {
+			if (debug)
+				cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, argv[0], r);
+			wait(r);
+			if (debug)
+				cprintf("[%08x] wait finished\n", thisenv->env_id);
+		}
+
+		multiple = false;
+		goto again;
+	}
+	/////////////////////////////////////////////
+
 	// In the parent, close all file descriptors and wait for the
 	// spawned command to exit.
 	close_all();
@@ -166,6 +208,12 @@ runit:
 		if (debug)
 			cprintf("[%08x] wait finished\n", thisenv->env_id);
 	}
+
+	////////////////////MAGENDANZ//////////////////////
+	if (back_child) {
+		sys_env_destroy(back_child);
+	}
+	/////////////////////////////////////////////////
 
 	// Done!
 	exit();

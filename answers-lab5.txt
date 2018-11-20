@@ -1,0 +1,7 @@
+Magendanz
+
+1) Flush the cache/TLB so that I/O accessed by the file system env cannot be read their by subsequent envs.
+
+
+Challenge: I added additional features to the shell including background commands and multiple commands per line. Background commands spawns the command off in a new fork, killing the fork when the command is completed. Multiple commands executes the first command and restarts the command parsing when it finishes.
+

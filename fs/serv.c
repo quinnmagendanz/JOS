@@ -213,8 +213,43 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	if (debug)
 		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
-	// Lab 5: Your code here:
-	return 0;
+	/////////////////////////MAGENDANZ//////////////////////////
+	struct OpenFile* o;
+	int r;
+	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0) {
+		return r;
+	}
+
+	const int bytes_reading = req->req_n > PGSIZE ? PGSIZE : req->req_n;
+	if ((r = file_read(o->o_file, ret->ret_buf, bytes_reading, o->o_fd->fd_offset)) < 0) {
+		return r;
+	}
+	o->o_fd->fd_offset += r;
+	return r;
+
+	/*int bytes_remaining = bytes_reading;
+	int blockno = 0;
+	char* block_addr;
+	// Copy full blocks into the buffer.
+	while (bytes_remaining > BLKSIZE) {
+		if ((r = file_get_block(o->o_file, blockno, &block_addr)) < 0) {
+			return r;
+		}
+		void* buf_loc = &(ret->ret_buf[bytes_reading - bytes_remaining]);
+		memcpy(buf_loc, block_addr, BLKSIZE);
+		bytes_remaining -= BLKSIZE;
+		blockno++;
+	}
+	// Copy remaining, partial block to buffer.
+	if (bytes_remaining > 0) {
+		if ((r = file_get_block(o->o_file, blockno, &block_addr)) < 0) {
+			return r;
+		}
+		void* buf_loc = &(ret->ret_buf[bytes_reading - bytes_remaining]);
+		memcpy(buf_loc, block_addr, bytes_remaining);
+	}
+	return bytes_reading;*/
+	///////////////////////////////////////////////////////////
 }
 
 
@@ -228,8 +263,20 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 	if (debug)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
-	// LAB 5: Your code here.
-	panic("serve_write not implemented");
+	/////////////////////////MAGENDANZ///////////////////////////
+	struct OpenFile* o;
+	int r;
+	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0) {
+		return r;
+	}
+
+	const int bytes_writing = req->req_n > sizeof(req->req_buf) ? sizeof(req->req_buf) : req->req_n;
+	if ((r = file_write(o->o_file, req->req_buf, bytes_writing, o->o_fd->fd_offset)) < 0) {
+		return r;
+	}
+	o->o_fd->fd_offset += r;
+	return r;
+	////////////////////////////////////////////////////////////	
 }
 
 // Stat ipc->stat.req_fileid.  Return the file's struct Stat to the

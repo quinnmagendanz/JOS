@@ -301,7 +301,17 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 static int
 copy_shared_pages(envid_t child)
 {
-	// LAB 5: Your code here.
+	/////////////////////MAGENDANZ///////////////////////
+	int r;
+	for (void* addr = 0; addr <  (void*)(UXSTACKTOP - PGSIZE); addr += PGSIZE) {
+		// If page directory is present, and page is present & sharable.	
+		if ((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_SHARE)) {
+			if ((r = sys_page_map(0, addr, child, addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0) {
+				panic("sys_page_map: %e", r);
+			}
+		}
+	}
+	////////////////////////////////////////////////////
 	return 0;
 }
 
