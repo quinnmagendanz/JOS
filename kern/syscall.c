@@ -5,6 +5,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 
+#include <kern/e1000.h>
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/trap.h>
@@ -439,6 +440,13 @@ sys_time_msec(void)
 	//////////////////////////////////////////
 }
 
+// Send packet to network card.
+static int
+sys_transmit_packet(char* packet_data, size_t packet_size)
+{
+	return e1000_transmit_packet(packet_data, packet_size);
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -480,6 +488,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_env_set_trapframe((envid_t)a1, (struct Trapframe*)a2);
 	case SYS_time_msec:
 		return sys_time_msec();
+	case SYS_transmit_packet:
+		return sys_transmit_packet((char*)a1, (size_t)a2);
 	default:
 		return -E_INVAL;
 	}
