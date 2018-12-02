@@ -52,13 +52,16 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	int r;
 	do {
 		r = sys_ipc_try_send(to_env, val, page_in, perm);
-		if (r < 0 && r != -E_IPC_NOT_RECV) {
-			panic("sys_ipc_try_send: %e", r);
+		if (r == 0) {
+			return;
 		}
 		sys_yield();
-	} while (r < 0);
+	} while (r == -E_IPC_NOT_RECV);
+
+	panic("sys_ipc_try_send: %e", r);
 	/////////////////////////////////////////////////////
 }
+
 
 // Find the first environment of the given type.  We'll use this to
 // find special environments.

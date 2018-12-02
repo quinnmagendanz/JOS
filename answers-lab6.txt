@@ -1,0 +1,3 @@
+Magendanz
+
+1) If the transmit ring is full, the syscall returns an error corresponding to no memory on the net card. Output loops through the syscall until it does not get that error (yielding the CPU in between tries).
