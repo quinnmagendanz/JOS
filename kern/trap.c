@@ -14,6 +14,7 @@
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 static struct Taskstate ts;
 
@@ -231,6 +232,20 @@ trap_dispatch(struct Trapframe *tf)
 			break;
 		case (IRQ_OFFSET + IRQ_SERIAL):
 			serial_intr();
+			break;
+		case (IRQ_OFFSET + IRQ_E1000):
+			// Packet received. Wake up all waiting envs.
+			for (int i = 0; i < NENV; i++) {
+				if (envs[i].env_packet_recving) {
+					envs[i].env_packet_recving = false; 
+					envs[i].env_status = ENV_RUNNABLE;
+					envs[i].env_tf.tf_regs.reg_eax = 0;
+				}
+			}
+
+			e1000_clear_interrupt();
+			lapic_eoi();
+			irq_eoi();
 			break;
 		case (IRQ_OFFSET + IRQ_SPURIOUS):
 			// Handle spurious interrupts

@@ -28,6 +28,7 @@ enum {
 
 	///////MAGENDANZ///////
 	E_NO_NET_MEM	,	// Network card memory is full
+	E_NO_AVAIL_PKT  ,	// No packets to read from network card
 	//////////////////////
 
 	MAXERROR

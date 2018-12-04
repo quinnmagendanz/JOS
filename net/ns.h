@@ -4,6 +4,7 @@
 #define IP "10.0.2.15"
 #define MASK "255.255.255.0"
 #define DEFAULT "10.0.2.2"
+#define MAX_PACKET_SIZE 1518 
 
 #define TIMER_INTERVAL 250
 

@@ -68,7 +68,15 @@ struct Env {
 	envid_t env_ipc_from;		// envid of the sender
 	int env_ipc_perm;		// Perm of page mapping received
 
-	bool env_priority;		//////MAGENDANZ///// Prioritized to scheduler
+	////////////////MAGENDANZ/////////////////
+	// Packet interrups
+	bool env_packet_recving;	// Env is blocked receiving
+	void* env_packet_data;		// VA at which to copy packet data
+	size_t* env_packet_size;	// VA of size of packet received
+
+	bool env_priority;		// Prioritized to scheduler
+	/////////////////////////////////////////
+
 };
 
 #endif // !JOS_INC_ENV_H
