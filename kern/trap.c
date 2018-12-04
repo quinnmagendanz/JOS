@@ -202,7 +202,6 @@ trap_dispatch(struct Trapframe *tf)
 	// Add time tick increment to clock interrupts.
 	// Be careful! In multiprocessors, clock interrupts are
 	// triggered on every CPU.
-	// LAB 6: Your code here.
 
 	//////////////////////MAGENDANZ////////////////////////
 	switch (tf->tf_trapno) {
@@ -239,7 +238,6 @@ trap_dispatch(struct Trapframe *tf)
 				if (envs[i].env_packet_recving) {
 					envs[i].env_packet_recving = false; 
 					envs[i].env_status = ENV_RUNNABLE;
-					envs[i].env_tf.tf_regs.reg_eax = 0;
 				}
 			}
 

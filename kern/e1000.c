@@ -98,6 +98,8 @@ e1000_receive_packet(void* packet_data, size_t* packet_size)
 
 	// No packets to receive.
 	if (!(packet_in_q[rdt].status & E1000_RXD_STAT_DD)) {
+		*packet_size = 0;
+		return -E_NO_AVAIL_PKT;
 		curenv->env_packet_recving = true; 
 		curenv->env_status = ENV_NOT_RUNNABLE;
 		curenv->env_tf.tf_regs.reg_eax = -E_NO_AVAIL_PKT;
@@ -105,14 +107,19 @@ e1000_receive_packet(void* packet_data, size_t* packet_size)
 		// Will never reach.
 	}
 
+	//cprintf("Head: %d\n", e1000_mmio[E1000_RDH]);
+	//cprintf("Tail: %d\n", e1000_mmio[E1000_RDT]);
 	// If packet is larger than buffer, truncate packet.
-	*packet_size = PACKET_BUF_SIZE > *packet_size ? *packet_size : PACKET_BUF_SIZE;
+	*packet_size = packet_in_q[rdt].length > *packet_size ? *packet_size : packet_in_q[rdt].length;
 	memcpy(packet_data, &packet_in_buffer[rdt], *packet_size);
 	packet_in_q[rdt].status &= ~E1000_RXD_STAT_DD;
 
 	// Only increment size once done with descriptor.
 	e1000_mmio[E1000_RDT] = rdt;
 	return 0;
-}
+
+}/*
+	*length = rxq[tail_idx].length;
+*/
 ////////////////////////////////////////////////////////
 

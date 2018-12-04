@@ -14,11 +14,13 @@ input(envid_t ns_envid)
 	// another packet in to the same physical page.
 	////////////////////MAGENDANZ//////////////////////
 	char packet_data[MAX_PACKET_SIZE];
-	size_t packet_size = MAX_PACKET_SIZE;
+	size_t packet_size;
 	int r;
 	while(true) {
-		// Get a packet.
-		while ((r = sys_receive_packet(&packet_data, &packet_size)) == -E_NO_AVAIL_PKT);
+		do {
+			packet_size = MAX_PACKET_SIZE;
+			// Get a packet.
+		} while ((r = sys_receive_packet(&packet_data, &packet_size)) == -E_NO_AVAIL_PKT);
 		if (r < 0) {
 			panic("sys_receive_packet: %e", r);
 		}
