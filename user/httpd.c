@@ -79,9 +79,10 @@ static int
 send_data(struct http_request *req, int fd)
 {
 	////////////////MAGENDANZ//////////////////
+	size_t size;
 	char file_portion[FILE_PORTION_SIZE];
 	// Read portion of file and write it to socket.
-	while ((size_t size = read(fd, file_portion, FILE_PORTION_SIZE)) > 0) {
+	while ((size = read(fd, file_portion, FILE_PORTION_SIZE)) > 0) {
 		if (write(req->sock, file_portion, size) != size) {
 			die("Failed to send file to client");
 		}
@@ -233,16 +234,17 @@ send_file(struct http_request *req)
 	// if the file is a directory, send a 404 error using send_error
 	// set file_size to the size of the file
 	///////////////////MAGENDANZ///////////////////
-	if ((fd, r = open(req->url, O_RDONLY)) < 0) {
+	if ((fd = open(req->url, O_RDONLY)) < 0) {
+		r = fd;
 		send_error(req, 404);
 		goto end;
 	}
-	struct Stat stat;
-	if ((r = stat(req->url, &stat)) < 0 || stat.st_isdir) {
+	struct Stat stats;
+	if ((r = stat(req->url, &stats)) < 0 || stats.st_isdir) {
 		send_error(req, 404);
 		goto end;
 	}
-	file_size = stat.st_size;
+	file_size = stats.st_size;
 	//////////////////////////////////////////////
 
 	if ((r = send_header(req, 200)) < 0)
