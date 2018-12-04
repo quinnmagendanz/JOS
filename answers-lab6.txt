@@ -2,14 +2,14 @@ Magendanz
 
 1) If the transmit ring is full, the syscall returns an error corresponding to no memory on the net card. Output loops through the syscall until it does not get that error (yielding the CPU in between tries).
 
-2) If the receive ring is empty, the syscall marks itself NOT_RUNNABLE and yields the cpu. When the e1000 receives a packet, it throws an interrupt which marks the env RUNNABLE so that it can check the ring again.
+2) If the receive ring is empty, the syscall returns an error corresponding to the no packets on the net card. Input loops through the syscall until it successfully receives a packet. 
 
-3) 
+3) Cheesy web page! 
 
-4) 25 hours.
+4) 30 hours.
 
 Challenge:
 As a challenge, I implemented e1000 interrupts. When the syscall cannot read from the buffer, it will mark the env NOT_RUNNABLE and yield the cpu. When the e1000 receives a packet, it throws an interrupt which marks the env RUNNABLE so that it can check the ring again.
 
-
+I also retreived the MAC address from the EEPROM to get rid of the reliance on the static MAC.
 

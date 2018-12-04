@@ -50,6 +50,15 @@
 #define E1000_RXD_STAT_DD	0x01    /* Descriptor Done */ 
 #define E1000_RXD_STAT_EOP      0x02    /* End of Packet */
 
+#define E1000_EEPROM_MAC_WORDS	3
+#define E1000_EEPROM_WORD_SIZE  16
+#define E1000_EERD     		0x00014 >> 2 /* EEPROM Read - RW */
+#define E1000_EERD_ADDR 	8 	/* Addr section */
+#define E1000_EERD_DATA 	16 	/* Data section */
+#define E1000_EERD_DONE 	0x00000010
+#define E1000_EERD_READ 	0x00000001
+
+
 #define E1000_TIPG_STANDARD	10 | (8<<10) | (6<20)
 #define E1000_NUM_OUT_DESC	32
 #define E1000_NUM_IN_DESC	128

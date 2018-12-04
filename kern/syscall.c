@@ -440,6 +440,7 @@ sys_time_msec(void)
 	//////////////////////////////////////////
 }
 
+////////////////////////MAGENDANZ////////////////////////
 // Send packet to network card.
 static int
 sys_transmit_packet(void* packet_data, size_t* packet_size)
@@ -451,8 +452,17 @@ sys_transmit_packet(void* packet_data, size_t* packet_size)
 static int
 sys_receive_packet(void* packet_data, size_t* packet_size)
 {
-	return e1000_receive_packet(packet_data, packet_size);
+	int r;
+	if ((r = e1000_receive_packet(packet_data, packet_size)) == E_NO_AVAIL_PKT) {
+		curenv->env_packet_recving = true; 
+		curenv->env_status = ENV_NOT_RUNNABLE;
+		curenv->env_tf.tf_regs.reg_eax = -E_NO_AVAIL_PKT;
+		sched_yield();
+		// Will never reach.
+	}
+	return r;
 }
+/////////////////////////////////////////////////////////
 
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
