@@ -16,12 +16,12 @@
 #define E1000_TCTL		0x00400 >> 2  /* TX Control - RW */
 #define E1000_TIPG		0x00410 >> 2  /* TX Inter-packet gap -RW */
 
-#define E1000_RDH		0x02910 >> 2  /* RX Descriptor Head (1) - RW */
-#define E1000_RDT		0x02918 >> 2  /* RX Descriptor Tail (1) - RW */
+#define E1000_RDH		0x02810 >> 2  /* RX Descriptor Head (1) - RW */
+#define E1000_RDT		0x02818 >> 2  /* RX Descriptor Tail (1) - RW */
 #define E1000_RAL		0x05400 >> 2  /* Receive Address - RW Array */
 #define E1000_RAH		0x05404 >> 2  /* Receive Address - RW Array */
-#define E1000_RDBAL		0x02900 >> 2  /* RX Descriptor Base Address Low */
-#define E1000_RDLEN		0x02910 >> 2  /* RX Descriptor Length (1) - RW */
+#define E1000_RDBAL		0x02800 >> 2  /* RX Descriptor Base Address Low */
+#define E1000_RDLEN		0x02808 >> 2  /* RX Descriptor Length (1) - RW */
 #define E1000_RCTL		0x00100 >> 2  /* RX Control - RW */
 #define E1000_IMS		0x000D0 >> 2  /* Interrupt Mask Set - RW */
 #define E1000_ICR		0x000C0 >> 2  /* Interrupt Cause Read - R/clr */
@@ -29,9 +29,7 @@
 // Transmit control flags
 #define E1000_TCTL_EN     	0x00000002    /* enable tx */
 #define E1000_TCTL_PSP		0x00000008    /* pad short packets */
-#define E1000_TCTL_CT		0x00000ff0    /* collision threshold */
 #define E1000_TCTL_CT_ETH	0x00000100    /* ethernet standard for TCTL.CT */
-#define E1000_TCTL_COLD		0x003ff000    /* collision distance */
 #define E1000_TCTL_COLD_FULL	0x00040000    /* full duplex operation for TCTL.COLD */
 
 // Receive control flags
@@ -50,12 +48,13 @@
 
 // Status receive descriptor flags
 #define E1000_RXD_STAT_DD	0x01    /* Descriptor Done */ 
+#define E1000_RXD_STAT_EOP      0x02    /* End of Packet */
 
 #define E1000_TIPG_STANDARD	10 | (8<<10) | (6<20)
 #define E1000_NUM_OUT_DESC	32
 #define E1000_NUM_IN_DESC	128
 #define MAX_PACKET_SIZE		1518
-#define IN_PACKET_BUFF_SIZE	2048 
+#define PACKET_BUF_SIZE		2048 
 
 struct tx_desc
 {

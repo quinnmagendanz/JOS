@@ -10,8 +10,8 @@
 volatile uint32_t* e1000_mmio;
 struct tx_desc packet_out_q[E1000_NUM_OUT_DESC] __attribute__ ((aligned (16)));
 struct rv_desc packet_in_q[E1000_NUM_IN_DESC] __attribute__ ((aligned (16)));
-char packet_out_buffer[E1000_NUM_OUT_DESC][MAX_PACKET_SIZE];
-char packet_in_buffer[E1000_NUM_IN_DESC][IN_PACKET_BUFF_SIZE];
+char packet_out_buffer[E1000_NUM_OUT_DESC][PACKET_BUF_SIZE];
+char packet_in_buffer[E1000_NUM_IN_DESC][PACKET_BUF_SIZE];
 
 int 
 pci_e1000_attach(struct pci_func *pcif)
@@ -93,23 +93,25 @@ e1000_transmit_packet(void* packet_data, size_t* packet_size)
 int
 e1000_receive_packet(void* packet_data, size_t* packet_size)
 {
-	size_t rdt = e1000_mmio[E1000_RDT];
+	// Increment circular array tail.
+	size_t rdt = (e1000_mmio[E1000_RDT] + 1) % E1000_NUM_IN_DESC;
 
 	// No packets to receive.
 	if (!(packet_in_q[rdt].status & E1000_RXD_STAT_DD)) {
 		curenv->env_packet_recving = true; 
-		//curenv->env_status = ENV_NOT_RUNNABLE;
+		curenv->env_status = ENV_NOT_RUNNABLE;
 		curenv->env_tf.tf_regs.reg_eax = -E_NO_AVAIL_PKT;
 		sched_yield();
 		// Will never reach.
 	}
 
 	// If packet is larger than buffer, truncate packet.
-	*packet_size = IN_PACKET_BUFF_SIZE > *packet_size ? *packet_size : IN_PACKET_BUFF_SIZE;
+	*packet_size = PACKET_BUF_SIZE > *packet_size ? *packet_size : PACKET_BUF_SIZE;
 	memcpy(packet_data, &packet_in_buffer[rdt], *packet_size);
-	packet_in_q[rdt].status &= ~(E1000_RXD_STAT_DD);
-	// Increment circular array tail.
-	e1000_mmio[E1000_RDT] = (rdt + 1) % E1000_NUM_IN_DESC;
+	packet_in_q[rdt].status &= ~E1000_RXD_STAT_DD;
+
+	// Only increment size once done with descriptor.
+	e1000_mmio[E1000_RDT] = rdt;
 	return 0;
 }
 ////////////////////////////////////////////////////////
